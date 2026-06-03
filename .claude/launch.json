@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "warehouse",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "require('http').createServer((q,r)=>{require('fs').readFile(require('path').join('/Users/isad/Documents/Project',q.url==='/'?'warehouse.html':q.url.slice(1)),(e,d)=>{r.writeHead(e?404:200);r.end(e?'not found':d)})}).listen(process.env.PORT||9999)"],
+      "port": 9999,
+      "autoPort": true
+    }
+  ]
+}

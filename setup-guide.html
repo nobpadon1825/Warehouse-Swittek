@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คู่มือตั้งค่า Google Sheets + ขึ้นเว็บ</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#f0f4f8; color:#1e3a5f; line-height:1.6; }
+  .page { max-width:860px; margin:0 auto; padding:40px 20px 80px; }
+  h1 { font-size:1.8rem; font-weight:900; margin-bottom:6px;
+       background:linear-gradient(135deg,#1e3a5f,#4db8ff);
+       -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .subtitle { color:#5a8aaa; font-size:1rem; margin-bottom:40px; }
+  .section { margin-bottom:48px; }
+  .section-head {
+    display:flex; align-items:center; gap:14px; margin-bottom:24px;
+    padding-bottom:16px; border-bottom:2px solid #edf2f9;
+  }
+  .section-num {
+    width:42px; height:42px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(135deg,#4db8ff,#1dd1a1);
+    color:#fff; font-weight:900; font-size:1.1rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 12px rgba(77,184,255,.35);
+  }
+  .section-head h2 { font-size:1.15rem; font-weight:800; color:#1e3a5f; }
+  .step {
+    display:flex; gap:14px; margin-bottom:16px;
+    background:#fff; border-radius:14px; padding:16px 20px;
+    border:1px solid #edf2f9;
+    box-shadow:0 1px 3px rgba(30,58,95,.04), 0 4px 12px rgba(30,58,95,.06);
+  }
+  .step-num {
+    width:28px; height:28px; border-radius:50%; flex-shrink:0;
+    background:#e8f4ff; color:#2c7be5; font-weight:800; font-size:.85rem;
+    display:flex; align-items:center; justify-content:center; margin-top:1px;
+  }
+  .step-body { flex:1; }
+  .step-body strong { color:#1e3a5f; display:block; margin-bottom:4px; font-size:.97rem; }
+  .step-body p, .step-body li { color:#444; font-size:.9rem; }
+  .step-body ul { padding-left:18px; margin-top:6px; }
+  .step-body li { margin-bottom:4px; }
+  code {
+    background:#e8f4ff; color:#1e5fa0; border-radius:6px;
+    padding:2px 7px; font-family:monospace; font-size:.88em;
+  }
+  .code-block {
+    background:#1e3a5f; color:#4db8ff; border-radius:12px;
+    padding:16px 20px; font-family:monospace; font-size:.84rem;
+    margin:10px 0; overflow-x:auto; line-height:1.7;
+    border:1px solid rgba(77,184,255,.2);
+  }
+  .code-block .cm { color:#6ddc8b; }
+  .code-block .kw { color:#ffcb6b; }
+  .code-block .str { color:#f78c6c; }
+  .tip {
+    background:linear-gradient(135deg,rgba(77,184,255,.08),rgba(29,209,161,.05));
+    border:1px solid rgba(77,184,255,.22); border-radius:12px;
+    padding:14px 18px; margin:16px 0; font-size:.88rem; color:#1e5fa0;
+    display:flex; gap:10px; align-items:flex-start;
+  }
+  .tip-icon { font-size:1.2rem; flex-shrink:0; margin-top:1px; }
+  .warn {
+    background:rgba(251,188,4,.08); border:1px solid rgba(251,188,4,.35);
+    border-radius:12px; padding:14px 18px; margin:16px 0;
+    font-size:.88rem; color:#7a5800; display:flex; gap:10px; align-items:flex-start;
+  }
+  .badge {
+    display:inline-block; padding:3px 10px; border-radius:20px; font-size:.78rem;
+    font-weight:700; background:#e8f4ff; color:#2c7be5; margin:2px;
+  }
+  .badge.green { background:#e6fff5; color:#1a9e77; }
+  .badge.orange { background:#fff3e0; color:#e65100; }
+  .final-box {
+    background:linear-gradient(135deg,#1e3a5f,#0d2c4f);
+    border-radius:18px; padding:28px 32px; color:#fff; text-align:center;
+    box-shadow:0 8px 32px rgba(30,58,95,.35);
+  }
+  .final-box h3 { font-size:1.3rem; margin-bottom:8px; }
+  .final-box p { color:rgba(255,255,255,.7); font-size:.92rem; }
+  .final-box .url-box {
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
+    border-radius:10px; padding:10px 16px; margin:16px 0;
+    font-family:monospace; font-size:.85rem; color:#4db8ff; word-break:break-all;
+  }
+  img.screenshot {
+    max-width:100%; border-radius:10px; border:1px solid #edf2f9;
+    box-shadow:0 4px 16px rgba(30,58,95,.1); margin:10px 0;
+  }
+  .arrow { color:#4db8ff; font-weight:700; margin:0 4px; }
+  .part-label {
+    background:linear-gradient(135deg,#4db8ff,#1dd1a1);
+    color:#fff; border-radius:20px; padding:4px 14px; font-size:.78rem;
+    font-weight:700; letter-spacing:.5px; display:inline-block; margin-bottom:14px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>📋 คู่มือตั้งค่าระบบคลังสินค้า</h1>
+  <p class="subtitle">ขั้นตอนทั้งหมด: เชื่อม Google Sheets + ขึ้นเว็บด้วย Netlify</p>
+
+  <!-- ===== PART A: Google Sheets ===== -->
+  <div class="section">
+    <div class="part-label">ส่วนที่ 1 — Google Sheets (เก็บข้อมูล)</div>
+    <div class="section-head">
+      <div class="section-num">1</div>
+      <h2>สร้าง Google Sheets ใหม่</h2>
+    </div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>เปิด Google Sheets</strong>
+        <p>ไปที่ <code>sheets.google.com</code> แล้วคลิก <strong>"+ Blank"</strong> เพื่อสร้างไฟล์ใหม่</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>ตั้งชื่อไฟล์</strong>
+        <p>คลิกที่ "Untitled spreadsheet" มุมบนซ้าย แล้วพิมพ์ชื่อเช่น <code>WarehouseDB</code></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>คัดลอก Spreadsheet ID</strong>
+        <p>ดู URL ในแถบที่อยู่ของเบราว์เซอร์ จะเห็นประมาณนี้:</p>
+        <div class="code-block">https://docs.google.com/spreadsheets/d/<span style="color:#f78c6c;font-weight:700;background:rgba(247,140,108,.15);padding:0 2px">1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms</span>/edit</div>
+        <p>คัดลอกส่วนที่เป็น <strong style="color:#e65100">ตัวอักษรยาวๆ</strong> ระหว่าง <code>/d/</code> และ <code>/edit</code> นั่นคือ Spreadsheet ID</p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="tip-icon">💡</span>
+      <div>ไม่ต้องสร้าง sheet แยกเลย — Apps Script จะสร้างให้อัตโนมัติเมื่อข้อมูลถูกบันทึกครั้งแรก</div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 2: Apps Script ===== -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-num">2</div>
+      <h2>สร้าง Apps Script (Backend API)</h2>
+    </div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>เปิด Apps Script Editor</strong>
+        <p>ใน Google Sheets: คลิกเมนู <code>Extensions</code> <span class="arrow">→</span> <code>Apps Script</code></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>ลบโค้ดเดิมออกทั้งหมด</strong>
+        <p>ใน Editor จะมีโค้ด <code>function myFunction() {}</code> อยู่ — ลบออกให้หมด</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>วางโค้ดจากไฟล์ Code.gs</strong>
+        <p>เปิดไฟล์ <code>Code.gs</code> ที่อยู่ในโฟลเดอร์เดียวกับ warehouse.html แล้วคัดลอกโค้ดทั้งหมด วางลงใน Apps Script Editor</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>ใส่ Spreadsheet ID</strong>
+        <p>บรรทัดที่ 6 ของโค้ด จะเห็น:</p>
+        <div class="code-block"><span class="kw">var</span> SPREADSHEET_ID = <span class="str">'ใส่ ID ของ Google Sheets ที่นี่'</span>;</div>
+        <p>เปลี่ยน <code>'ใส่ ID ของ Google Sheets ที่นี่'</code> เป็น ID ที่คัดลอกมาจากขั้นตอนที่ 1 เช่น:</p>
+        <div class="code-block"><span class="kw">var</span> SPREADSHEET_ID = <span class="str">'1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms'</span>;</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>กด Save (Ctrl+S)</strong>
+        <p>บันทึกโค้ด</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 3: Deploy ===== -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-num">3</div>
+      <h2>Deploy Apps Script เป็น Web App</h2>
+    </div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>คลิก "Deploy" มุมบนขวา</strong>
+        <p>ใน Apps Script Editor คลิกปุ่ม <strong>Deploy</strong> <span class="arrow">→</span> <strong>New deployment</strong></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>ตั้งค่า Deployment</strong>
+        <ul>
+          <li><strong>Select type:</strong> เลือก <code>Web app</code></li>
+          <li><strong>Description:</strong> พิมพ์ <code>Warehouse API v1</code> (ไม่บังคับ)</li>
+          <li><strong>Execute as:</strong> เลือก <code>Me (your email)</code></li>
+          <li><strong>Who has access:</strong> เลือก <code>Anyone</code> ← <span style="color:#e65100;font-weight:700">สำคัญมาก!</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>คลิก Deploy</strong>
+        <p>Google จะขอให้ Authorize — คลิก <strong>Authorize access</strong> แล้วเลือก Google Account ของคุณ คลิก <strong>Allow</strong></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>คัดลอก Web App URL</strong>
+        <p>จะได้ URL ประมาณนี้:</p>
+        <div class="code-block">https://script.google.com/macros/s/<span style="color:#f78c6c">AKfycbxxxxxxxxxxxxxxxxxxxxxxxx</span>/exec</div>
+        <p><strong>คัดลอก URL นี้ไว้</strong> — จะนำไปวางในไฟล์ warehouse.html ขั้นตอนต่อไป</p>
+      </div>
+    </div>
+
+    <div class="warn">
+      <span class="tip-icon">⚠️</span>
+      <div>ถ้าจะแก้โค้ด Apps Script ในอนาคต ต้อง Deploy ใหม่ทุกครั้ง (New deployment) — URL จะเปลี่ยน ต้องอัปเดตใน warehouse.html ด้วย</div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 4: Update HTML ===== -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-num">4</div>
+      <h2>ใส่ URL ใน warehouse.html</h2>
+    </div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>เปิดไฟล์ warehouse.html ด้วย Text Editor</strong>
+        <p>ใช้ Notepad, VS Code, หรือโปรแกรมแก้ไขข้อความใดก็ได้</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>ค้นหาบรรทัดนี้ (Ctrl+F)</strong>
+        <div class="code-block">var SCRIPT_URL = <span class="str">''</span>;</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>วาง URL ที่คัดลอกมา</strong>
+        <p>เปลี่ยนเป็น:</p>
+        <div class="code-block"><span class="kw">var</span> SCRIPT_URL = <span class="str">'https://script.google.com/macros/s/AKfycb.../exec'</span>;</div>
+        <p>แล้วบันทึกไฟล์ (Ctrl+S)</p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="tip-icon">✅</span>
+      <div>แค่นี้พอ! ตอนนี้ warehouse.html จะโหลดข้อมูลจาก Google Sheets ทุกครั้งที่เปิด และบันทึกข้อมูลกลับไปอัตโนมัติ</div>
+    </div>
+  </div>
+
+  <!-- ===== PART B: Deploy to web ===== -->
+  <div class="section">
+    <div class="part-label">ส่วนที่ 2 — ขึ้นเว็บ (Netlify)</div>
+    <div class="section-head">
+      <div class="section-num">5</div>
+      <h2>ขึ้นเว็บด้วย Netlify (ฟรี, ง่ายสุด)</h2>
+    </div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>เปิด netlify.com</strong>
+        <p>ไปที่ <code>netlify.com</code> แล้วสมัครบัญชีฟรี (ใช้ Google Account ได้เลย)</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>สร้างโฟลเดอร์สำหรับ deploy</strong>
+        <p>สร้างโฟลเดอร์ใหม่ในคอมพิวเตอร์ (เช่น ชื่อ <code>warehouse-app</code>) แล้วนำไฟล์ <code>warehouse.html</code> ไปไว้ข้างใน และเปลี่ยนชื่อเป็น <code>index.html</code></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Drag &amp; Drop โฟลเดอร์</strong>
+        <p>ใน Netlify Dashboard คลิก <strong>"Add new site"</strong> → <strong>"Deploy manually"</strong></p>
+        <p>จะเห็นกล่องสีเทา ให้ลาก โฟลเดอร์ <code>warehouse-app</code> ทั้งโฟลเดอร์ไปวางในกล่องนั้น</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>รอ Deploy เสร็จ (~10 วินาที)</strong>
+        <p>Netlify จะให้ URL เช่น <code>funny-name-123.netlify.app</code> — เปิด URL นี้บน Browser ใดก็ได้ ทุกที่ในโลก!</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>(ไม่บังคับ) เปลี่ยนชื่อ URL</strong>
+        <p>ไปที่ <strong>Site settings</strong> → <strong>Change site name</strong> แล้วพิมพ์ชื่อที่ต้องการ เช่น <code>my-warehouse</code> จะได้ URL เป็น <code>my-warehouse.netlify.app</code></p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="tip-icon">🔄</span>
+      <div><strong>อัปเดตในอนาคต:</strong> ถ้าแก้ไข warehouse.html และอยากอัปเดตเว็บ แค่ Drag &amp; Drop โฟลเดอร์ใหม่อีกครั้ง Netlify จะ deploy เวอร์ชั่นใหม่ให้อัตโนมัติ</div>
+    </div>
+  </div>
+
+  <!-- ===== Summary ===== -->
+  <div class="final-box">
+    <h3>🎉 เสร็จสมบูรณ์!</h3>
+    <p>ระบบคลังสินค้าของคุณพร้อมใช้งานบนเว็บแล้ว<br>ข้อมูลทั้งหมดถูกเก็บใน Google Sheets และสามารถเปิดดูได้จากทุกอุปกรณ์</p>
+    <div class="url-box">https://my-warehouse.netlify.app</div>
+    <p style="font-size:.82rem;color:rgba(255,255,255,.5);margin-top:8px">URL จริงจะขึ้นอยู่กับชื่อที่ตั้งใน Netlify</p>
+  </div>
+
+  <div style="margin-top:40px;padding:24px;background:#fff;border-radius:16px;border:1px solid #edf2f9;">
+    <h3 style="font-size:1rem;color:#1e3a5f;margin-bottom:16px">📁 ไฟล์ที่ต้องใช้</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      <div style="background:#e8f4ff;border-radius:10px;padding:12px 16px;font-size:.88rem;">
+        <div style="font-weight:700;color:#1e5fa0">📄 warehouse.html</div>
+        <div style="color:#5a8aaa;font-size:.8rem">ตัวแอปหลัก (ใส่ SCRIPT_URL แล้ว)<br>เปลี่ยนชื่อเป็น index.html ก่อน deploy</div>
+      </div>
+      <div style="background:#e6fff5;border-radius:10px;padding:12px 16px;font-size:.88rem;">
+        <div style="font-weight:700;color:#1a9e77">📄 Code.gs</div>
+        <div style="color:#5a8aaa;font-size:.8rem">โค้ด Apps Script<br>วางใน Apps Script Editor</div>
+      </div>
+      <div style="background:#fff3e0;border-radius:10px;padding:12px 16px;font-size:.88rem;">
+        <div style="font-weight:700;color:#e65100">📄 setup-guide.html</div>
+        <div style="color:#5a8aaa;font-size:.8rem">คู่มือนี้<br>(ไม่ต้อง deploy)</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

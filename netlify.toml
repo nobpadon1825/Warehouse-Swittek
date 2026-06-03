@@ -1,0 +1,14 @@
+[[headers]]
+  for = "/warehouse.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, stale-while-revalidate=86400"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/setup-guide.html"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
