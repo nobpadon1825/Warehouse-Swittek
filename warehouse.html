@@ -1095,7 +1095,7 @@
   }
   .confirm-overlay {
     display:none; position:fixed; inset:0; z-index:9999999;
-    background:rgba(0,0,0,0.55); backdrop-filter:blur(4px);
+    background:rgba(0,0,0,0.45);
     align-items:center; justify-content:center;
   }
   .confirm-overlay.open { display:flex; }
@@ -4599,14 +4599,14 @@ function _loadAvatar() {
 function _compressAvatar(dataUrl, callback) {
   var img = new Image();
   img.onload = function() {
-    var MAX = 128;
+    var MAX = 256;
     var w = img.width, h = img.height;
     if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
     else       { w = Math.round(w * MAX / h); h = MAX; }
     var cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
     cv.getContext('2d').drawImage(img, 0, 0, w, h);
-    callback(cv.toDataURL('image/jpeg', 0.7));
+    callback(cv.toDataURL('image/jpeg', 0.85));
   };
   img.onerror = function(){ callback(dataUrl); };
   img.src = dataUrl;
