@@ -4502,7 +4502,7 @@ var LOGIN_ACCOUNTS_DEFAULT = [
   { user: 'nobpadon',  pass: 'Nn@112233',   displayName: 'Nobpadon', role: 'user' },
 ];
 function getAllAccounts() {
-  var extra = lsGet('wh_extra_accounts', []).filter(function(a){ return !a._avatar; });
+  var extra = lsGet('wh_extra_accounts', []).filter(function(a){ return !!a.pass; });
   return LOGIN_ACCOUNTS_DEFAULT.concat(extra);
 }
 var loginHistory = lsGet('wh_login_history', []);
@@ -4586,11 +4586,11 @@ function _getAvatarKey() {
 }
 function _loadAvatar() {
   var user = sessionStorage.getItem('wh_current_user') || 'default';
-  // ดึงจาก wh_extra_accounts (มีใน DATA_KEYS เดิม ไม่ต้องแก้ Apps Script)
+  // ดึงจาก wh_extra_accounts — avatar entry มี pass='' และ avatarUrl=data
   if (_sheetsReady) {
     var accs = _sheetsCache['wh_extra_accounts'] || [];
     for (var i = 0; i < accs.length; i++) {
-      if (accs[i]._avatar && accs[i].user === user && accs[i].data) return accs[i].data;
+      if (!accs[i].pass && accs[i].user === user && accs[i].avatarUrl) return accs[i].avatarUrl;
     }
   }
   return localStorage.getItem(_getAvatarKey()) || null;
@@ -4686,17 +4686,16 @@ function handleProfileUpload(e) {
 }
 // sync avatar เข้า Sheets — เรียกได้ตลอดเวลา ถ้า Sheets ไม่พร้อมจะ mark pending แล้วรอ
 function _doSyncAvatar(user, data) {
-  if (!_sheetsReady) {
-    localStorage.setItem('wh_avatar_pending_sync', user);
-    return;
-  }
-  // เก็บใน wh_extra_accounts เป็น entry พิเศษ { _avatar:true, user, data }
-  var accs = (lsGet('wh_extra_accounts', [])).slice();
+  if (!_sheetsReady) { localStorage.setItem('wh_avatar_pending_sync', user); return; }
+  var accs = lsGet('wh_extra_accounts', []).slice();
+  // normalize ทุก entry ให้มี avatarUrl field — Sheets ใช้ keys ของ arr[0] เป็น column headers
+  accs = accs.map(function(a) { if (!a.hasOwnProperty('avatarUrl')) a.avatarUrl = ''; return a; });
+  // หา/สร้าง avatar entry สำหรับ user นี้ (pass='' = avatar-only entry)
   var found = false;
   for (var i = 0; i < accs.length; i++) {
-    if (accs[i]._avatar && accs[i].user === user) { accs[i].data = data; found = true; break; }
+    if (!accs[i].pass && accs[i].user === user) { accs[i].avatarUrl = data; found = true; break; }
   }
-  if (!found) accs.push({ _avatar: true, user: user, data: data });
+  if (!found) accs.push({ user: user, pass: '', displayName: '', role: '', avatarUrl: data });
   lsSet('wh_extra_accounts', accs);
   pushToSheets();
   localStorage.removeItem('wh_avatar_pending_sync');
@@ -4719,7 +4718,7 @@ function removeProfilePic() {
     var user = sessionStorage.getItem('wh_current_user') || 'default';
     localStorage.removeItem(_getAvatarKey());
     var accs = lsGet('wh_extra_accounts', []);
-    accs = accs.filter(function(a){ return !(a._avatar && a.user === user); });
+    accs = accs.filter(function(a){ return !(a.user === user && !a.pass); });
     lsSet('wh_extra_accounts', accs);
     pushToSheets();
     applyAvatar(null);
