@@ -2433,7 +2433,7 @@
 //  GOOGLE SHEETS CONFIG
 //  วางลิงก์ Apps Script Web App URL ที่นี่ (ขั้นตอนอยู่ในคู่มือ)
 // ============================================================
-var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx6XxPfkPcDI9kNgHz07oABWNadlmrFzIqeNuZL9XKYoFVctFW5iaPrYhu7MWum7QU/exec';
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9hwdwIDrOWxxOsiCChKvhTAHwH1TUKrXG_XqOUf7dX381gu_GQbYlRf_1xFXhmQp0/exec';
 
 // ============================================================
 //  GOOGLE SHEETS DATA LAYER
@@ -4502,7 +4502,7 @@ var LOGIN_ACCOUNTS_DEFAULT = [
   { user: 'nobpadon',  pass: 'Nn@112233',   displayName: 'Nobpadon', role: 'user' },
 ];
 function getAllAccounts() {
-  var extra = lsGet('wh_extra_accounts', []);
+  var extra = lsGet('wh_extra_accounts', []).filter(function(a){ return !a._avatar; });
   return LOGIN_ACCOUNTS_DEFAULT.concat(extra);
 }
 var loginHistory = lsGet('wh_login_history', []);
@@ -4586,11 +4586,11 @@ function _getAvatarKey() {
 }
 function _loadAvatar() {
   var user = sessionStorage.getItem('wh_current_user') || 'default';
-  // ดึงจาก Sheets ก่อน (sync ข้ามเครื่อง) แล้วค่อย fallback localStorage
+  // ดึงจาก wh_extra_accounts (มีใน DATA_KEYS เดิม ไม่ต้องแก้ Apps Script)
   if (_sheetsReady) {
-    var avatars = _sheetsCache['wh_avatars'] || [];
-    for (var i = 0; i < avatars.length; i++) {
-      if (avatars[i].user === user && avatars[i].data) return avatars[i].data;
+    var accs = _sheetsCache['wh_extra_accounts'] || [];
+    for (var i = 0; i < accs.length; i++) {
+      if (accs[i]._avatar && accs[i].user === user && accs[i].data) return accs[i].data;
     }
   }
   return localStorage.getItem(_getAvatarKey()) || null;
@@ -4690,13 +4690,14 @@ function _doSyncAvatar(user, data) {
     localStorage.setItem('wh_avatar_pending_sync', user);
     return;
   }
-  var avatars = (_sheetsCache['wh_avatars'] || []).slice();
+  // เก็บใน wh_extra_accounts เป็น entry พิเศษ { _avatar:true, user, data }
+  var accs = (lsGet('wh_extra_accounts', [])).slice();
   var found = false;
-  for (var i = 0; i < avatars.length; i++) {
-    if (avatars[i].user === user) { avatars[i].data = data; found = true; break; }
+  for (var i = 0; i < accs.length; i++) {
+    if (accs[i]._avatar && accs[i].user === user) { accs[i].data = data; found = true; break; }
   }
-  if (!found) avatars.push({ user: user, data: data });
-  lsSet('wh_avatars', avatars);
+  if (!found) accs.push({ _avatar: true, user: user, data: data });
+  lsSet('wh_extra_accounts', accs);
   pushToSheets();
   localStorage.removeItem('wh_avatar_pending_sync');
 }
@@ -4717,10 +4718,9 @@ function removeProfilePic() {
   showConfirm('ลบรูปโปรไฟล์?', function() {
     var user = sessionStorage.getItem('wh_current_user') || 'default';
     localStorage.removeItem(_getAvatarKey());
-    // ลบออกจาก Sheets ด้วย
-    var avatars = (_sheetsReady ? (_sheetsCache['wh_avatars'] || []) : []);
-    avatars = avatars.filter(function(a){ return a.user !== user; });
-    lsSet('wh_avatars', avatars);
+    var accs = lsGet('wh_extra_accounts', []);
+    accs = accs.filter(function(a){ return !(a._avatar && a.user === user); });
+    lsSet('wh_extra_accounts', accs);
     pushToSheets();
     applyAvatar(null);
     var overlay = document.getElementById('profile-modal');
