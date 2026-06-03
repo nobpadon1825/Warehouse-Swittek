@@ -1085,13 +1085,13 @@
 
   /* Custom Confirm Dialog */
   @keyframes confirmIn {
-    0%   { opacity:0; transform:translate(-50%,-50%) scale(0.4) rotate(-8deg); }
-    65%  { transform:translate(-50%,-50%) scale(1.04) rotate(0.5deg); }
-    100% { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+    0%   { opacity:0; transform:scale(0.4) rotate(-8deg); }
+    65%  { transform:scale(1.04) rotate(0.5deg); }
+    100% { opacity:1; transform:scale(1) rotate(0deg); }
   }
   @keyframes confirmOut {
-    0%   { opacity:1; transform:translate(-50%,-50%) scale(1); }
-    100% { opacity:0; transform:translate(-50%,-50%) scale(0.75) rotate(4deg); }
+    0%   { opacity:1; transform:scale(1); }
+    100% { opacity:0; transform:scale(0.75) rotate(4deg); }
   }
   .confirm-overlay {
     display:none; position:fixed; inset:0; z-index:9999999;
