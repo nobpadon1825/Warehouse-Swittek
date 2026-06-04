@@ -2387,7 +2387,7 @@
 
 <!-- Custom Confirm -->
 <!-- Image Lightbox -->
-<div class="img-lightbox" id="img-lightbox" onclick="closeImgLightbox()">
+<div class="img-lightbox" id="img-lightbox" tabindex="-1" onclick="closeImgLightbox()" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();lbPrev();}else if(event.key==='ArrowRight'){event.preventDefault();lbNext();}else if(event.key==='Escape'){closeImgLightbox();}" style="outline:none">
   <button class="img-lightbox-close" onclick="closeImgLightbox()">✕</button>
   <button id="lb-prev" onclick="event.stopPropagation();lbPrev()" style="display:none;position:fixed;left:20px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:1.8rem;width:48px;height:48px;border-radius:50%;cursor:pointer;align-items:center;justify-content:center">‹</button>
   <img id="img-lightbox-img" src="" alt="รูปสินค้า" onclick="event.stopPropagation()" style="max-width:90vw;max-height:82vh;border-radius:16px;box-shadow:0 8px 48px rgba(0,0,0,0.6)">
@@ -3208,8 +3208,17 @@ function _openGallery(stockId, imgs, idx) {
   _lbImages = imgs;
   _lbIndex  = idx || 0;
   _renderLightbox();
-  document.getElementById('img-lightbox').classList.add('open');
+  var lb = document.getElementById('img-lightbox');
+  lb.classList.add('open');
+  setTimeout(function(){ lb.focus(); }, 50);
 }
+document.addEventListener('keydown', function(e) {
+  var lb = document.getElementById('img-lightbox');
+  if (!lb || !lb.classList.contains('open')) return;
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); e.stopPropagation(); lbPrev(); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); lbNext(); }
+  if (e.key === 'Escape')     { closeImgLightbox(); }
+}, true);
 function _renderLightbox() {
   var lb = document.getElementById('img-lightbox');
   lb.querySelector('#img-lightbox-img').src = _lbImages[_lbIndex];
@@ -4518,6 +4527,7 @@ function doLogin() {
     sessionStorage.setItem('wh_logged','1');
     sessionStorage.setItem('wh_current_user', acc.user);
     sessionStorage.setItem('wh_display_name', acc.displayName);
+    localStorage.setItem('wh_current_user_last', acc.user);
     // เก็บ entry ไว้ก่อน — บันทึกจริงหลัง _appInit เพื่อไม่ให้ Sheets sync ทับ
     var _loginEntry = {
       user: acc.user,
@@ -4583,60 +4593,77 @@ document.addEventListener('click', function(e) {
 var _profileTmp = null; // base64 preview รอ save
 
 function _getAvatarKey() {
-  return 'wh_avatar_' + (sessionStorage.getItem('wh_current_user') || 'default');
+  return 'wh_avatar_' + (sessionStorage.getItem('wh_current_user') || localStorage.getItem('wh_current_user_last') || 'default');
 }
 function _loadAvatar() {
-  var user = sessionStorage.getItem('wh_current_user') || 'default';
-  // ดึงจาก wh_extra_accounts — avatar entry มี pass='' และ avatarUrl=data
+  var user = sessionStorage.getItem('wh_current_user') || localStorage.getItem('wh_current_user_last') || 'default';
+  var _ok = function(v) { return v && v.indexOf('data:image/') === 0 && v.length > 500; };
+  var _cache = function(v) { try { localStorage.setItem(_getAvatarKey(), v); } catch(e) {} return v; };
+  // 1) dedicated localStorage key — เร็ว ไม่ขึ้นกับ Sheets
+  var byKey = localStorage.getItem(_getAvatarKey());
+  if (_ok(byKey)) return byKey;
+  // 2) wh_avatars map — อ่านจาก localStorage โดยตรง (ไม่ผ่าน lsGet ซึ่งอาจ return {} เมื่อ _sheetsReady=true แต่ยังไม่ sync)
+  try { var avMap = JSON.parse(localStorage.getItem('wh_avatars') || '{}'); if (_ok(avMap[user])) return _cache(avMap[user]); } catch(e) {}
+  // 2b) ถ้า Sheets sync แล้ว ให้เช็ค sheetsCache ด้วย
+  if (_sheetsReady && _sheetsCache['wh_avatars'] && _ok(_sheetsCache['wh_avatars'][user])) return _cache(_sheetsCache['wh_avatars'][user]);
+  // 3) wh_extra_accounts (legacy — ไม่ cache เพราะอาจมีข้อมูล truncated จาก Sheets)
   if (_sheetsReady) {
     var accs = _sheetsCache['wh_extra_accounts'] || [];
     for (var i = 0; i < accs.length; i++) {
-      if (!accs[i].pass && accs[i].user === user && accs[i].avatarUrl) return accs[i].avatarUrl;
+      if (!accs[i].pass && accs[i].user === user && _ok(accs[i].avatarUrl)) return accs[i].avatarUrl;
     }
   }
-  return localStorage.getItem(_getAvatarKey()) || null;
+  try {
+    var stored = JSON.parse(localStorage.getItem('wh_extra_accounts') || '[]');
+    for (var j = 0; j < stored.length; j++) {
+      if (!stored[j].pass && stored[j].user === user && _ok(stored[j].avatarUrl)) return stored[j].avatarUrl;
+    }
+  } catch(e) {}
+  return null;
 }
 // compress รูปให้เหลือ max 128×128 / JPEG 70% ก่อน sync Sheets (ประหยัด cell space)
 function _compressAvatar(dataUrl, callback) {
   var img = new Image();
   img.onload = function() {
-    var MAX = 256;
+    var MAX = 128;
     var w = img.width, h = img.height;
     if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
     else       { w = Math.round(w * MAX / h); h = MAX; }
     var cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
     cv.getContext('2d').drawImage(img, 0, 0, w, h);
-    callback(cv.toDataURL('image/jpeg', 0.85));
+    callback(cv.toDataURL('image/jpeg', 0.70));
   };
   img.onerror = function(){ callback(dataUrl); };
   img.src = dataUrl;
 }
-function applyAvatar(b64) {
-  // topbar chip avatar
+function applyAvatar(b64, force) {
   var av = document.getElementById('tb-user-avatar');
-  var name = sessionStorage.getItem('wh_display_name') || sessionStorage.getItem('wh_current_user') || '';
+  if (!av) return;
+  if (!b64 && !force && av.querySelector('img')) return;
+  var name = sessionStorage.getItem('wh_display_name') || sessionStorage.getItem('wh_current_user') || localStorage.getItem('wh_current_user_last') || '';
   var initial = name.charAt(0).toUpperCase() || '?';
-  if (b64) {
-    av.innerHTML = '<img src="'+b64+'" alt="avatar"/>';
-  } else {
-    av.innerHTML = initial;
-  }
-  // dropdown header avatar
   var udAv = document.getElementById('ud-avatar');
-  if (udAv) udAv.innerHTML = b64 ? '<img src="'+b64+'" alt="avatar"/>' : initial;
-  // sidebar avatar
   var sbAv = document.getElementById('sb-user-avatar');
-  if (sbAv) {
-    if (b64) {
-      sbAv.style.backgroundImage = 'url('+b64+')';
-      sbAv.style.backgroundSize = 'cover';
-      sbAv.style.backgroundPosition = 'center';
-      sbAv.textContent = '';
-    } else {
-      sbAv.style.backgroundImage = '';
-      sbAv.textContent = initial;
-    }
+  function _showInitial() {
+    av.innerHTML = initial;
+    if (udAv) udAv.innerHTML = initial;
+    if (sbAv) { sbAv.style.backgroundImage = ''; sbAv.textContent = initial; }
+  }
+  if (b64) {
+    var img = document.createElement('img');
+    img.alt = 'avatar';
+    img.onerror = function() { _showInitial(); };
+    img.onload = function() {
+      // render สำเร็จ — cache ลง localStorage ทันที ใช้ refresh ครั้งต่อไปได้เลย
+      try { localStorage.setItem(_getAvatarKey(), b64); } catch(e) {}
+    };
+    img.src = b64;
+    av.innerHTML = ''; av.appendChild(img);
+    if (udAv) { var img2 = document.createElement('img'); img2.alt = 'avatar'; img2.src = b64; udAv.innerHTML = ''; udAv.appendChild(img2); }
+    if (sbAv) { sbAv.style.backgroundImage = 'url('+b64+')'; sbAv.style.backgroundSize = 'cover'; sbAv.style.backgroundPosition = 'center'; sbAv.textContent = ''; }
+  } else {
+    _showInitial();
   }
 }
 
@@ -4705,8 +4732,10 @@ function _doSyncAvatar(user, data) {
 function saveProfilePic() {
   if (!_profileTmp) { showAlert('กรุณาเลือกรูปภาพก่อน', {icon:'ℹ️'}); return; }
   _compressAvatar(_profileTmp, function(compressed) {
-    var user = sessionStorage.getItem('wh_current_user') || 'default';
-    localStorage.setItem(_getAvatarKey(), compressed);
+    var user = sessionStorage.getItem('wh_current_user') || localStorage.getItem('wh_current_user_last') || 'default';
+    try { localStorage.setItem(_getAvatarKey(), compressed); } catch(e) {}
+    // บันทึกลง wh_avatars map ซึ่ง sync กับ Sheets โดยตรง (ข้ามเครื่องได้)
+    var avMap = lsGet('wh_avatars', {}); avMap[user] = compressed; lsSet('wh_avatars', avMap);
     _doSyncAvatar(user, compressed);
     applyAvatar(compressed);
     var overlay = document.getElementById('profile-modal');
@@ -4716,13 +4745,15 @@ function saveProfilePic() {
 }
 function removeProfilePic() {
   showConfirm('ลบรูปโปรไฟล์?', function() {
-    var user = sessionStorage.getItem('wh_current_user') || 'default';
+    var user = sessionStorage.getItem('wh_current_user') || localStorage.getItem('wh_current_user_last') || 'default';
     localStorage.removeItem(_getAvatarKey());
+    // ลบออกจาก wh_avatars map ด้วย
+    var avMap = lsGet('wh_avatars', {}); delete avMap[user]; lsSet('wh_avatars', avMap);
     var accs = lsGet('wh_extra_accounts', []);
     accs = accs.filter(function(a){ return !(a.user === user && !a.pass); });
     lsSet('wh_extra_accounts', accs);
     pushToSheets();
-    applyAvatar(null);
+    applyAvatar(null, true);
     var overlay = document.getElementById('profile-modal');
     if (overlay) overlay.remove();
     showToast('🗑️', 'ลบรูปโปรไฟล์แล้ว');
@@ -5060,7 +5091,11 @@ function _appInit() {
     var pendingUser = localStorage.getItem('wh_avatar_pending_sync');
     if (pendingUser) {
       var pendingData = localStorage.getItem('wh_avatar_' + pendingUser);
-      if (pendingData) _doSyncAvatar(pendingUser, pendingData);
+      if (pendingData) {
+        _doSyncAvatar(pendingUser, pendingData);
+        // sync wh_avatars map ขึ้น Sheets ด้วย (cross-device)
+        var _pMap = lsGet('wh_avatars', {}); _pMap[pendingUser] = pendingData; lsSet('wh_avatars', _pMap); pushToSheets();
+      }
     }
   }
   applyAvatar(_loadAvatar());
